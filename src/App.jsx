@@ -5,10 +5,10 @@ import {
   Plus,
   Minus,
   Trash2,
-  Pizza,
-  Coffee,
-  IceCream,
-  Sandwich,
+  Search,
+  Star,
+  Clock3,
+  MapPin,
   CheckCircle,
 } from "lucide-react";
 
@@ -17,65 +17,55 @@ const menuItems = [
     id: 1,
     name: "Margherita Pizza",
     price: 299,
-    category: "Pizza",
+    rating: 4.5,
+    time: "25 mins",
     image:
-      "https://images.unsplash.com/photo-1604382355076-af4b0eb60143?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=1200&auto=format&fit=crop",
   },
   {
     id: 2,
     name: "Farmhouse Pizza",
     price: 399,
-    category: "Pizza",
+    rating: 4.7,
+    time: "30 mins",
     image:
-      "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1604382355076-af4b0eb60143?q=80&w=1200&auto=format&fit=crop",
   },
   {
     id: 3,
-    name: "Cold Coffee",
-    price: 149,
-    category: "Drinks",
-    image:
-      "https://images.unsplash.com/photo-1517701604599-bb29b565090c?q=80&w=1200&auto=format&fit=crop",
-  },
-  {
-    id: 4,
     name: "Veg Burger",
     price: 199,
-    category: "Burger",
+    rating: 4.4,
+    time: "20 mins",
     image:
       "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1200&auto=format&fit=crop",
   },
   {
-    id: 5,
-    name: "Pasta Alfredo",
-    price: 349,
-    category: "Pasta",
+    id: 4,
+    name: "Cold Coffee",
+    price: 149,
+    rating: 4.8,
+    time: "10 mins",
     image:
-      "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1517701604599-bb29b565090c?q=80&w=1200&auto=format&fit=crop",
+  },
+  {
+    id: 5,
+    name: "French Fries",
+    price: 129,
+    rating: 4.2,
+    time: "15 mins",
+    image:
+      "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?q=80&w=1200&auto=format&fit=crop",
   },
   {
     id: 6,
     name: "Chocolate Shake",
     price: 179,
-    category: "Drinks",
+    rating: 4.9,
+    time: "12 mins",
     image:
       "https://images.unsplash.com/photo-1577805947697-89e18249d767?q=80&w=1200&auto=format&fit=crop",
-  },
-  {
-    id: 7,
-    name: "French Fries",
-    price: 129,
-    category: "Sides",
-    image:
-      "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?q=80&w=1200&auto=format&fit=crop",
-  },
-  {
-    id: 8,
-    name: "Ice Cream Sundae",
-    price: 159,
-    category: "Dessert",
-    image:
-      "https://images.unsplash.com/photo-1563805042-7684c019e1cb?q=80&w=1200&auto=format&fit=crop",
   },
 ];
 
@@ -120,10 +110,6 @@ function App() {
     );
   };
 
-  const removeItem = (id) => {
-    setCart(cart.filter((item) => item.id !== id));
-  };
-
   const total = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
@@ -140,18 +126,15 @@ function App() {
         {
           items: cart,
           total,
-          createdAt: new Date(),
         }
       );
 
       setSuccess(true);
       setCart([]);
 
-      setTimeout(() => {
-        setSuccess(false);
-      }, 3000);
-    } catch (error) {
-      console.error(error);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      console.error(err);
       alert("Failed to place order");
     } finally {
       setLoading(false);
@@ -159,163 +142,186 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 p-6 shadow-2xl">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-extrabold tracking-tight">
-              Restaurant POS
-            </h1>
-            <p className="text-sm opacity-90 mt-1">
-              Cloud Native SaaS POS Platform
-            </p>
-          </div>
+    <div className="min-h-screen bg-[#f8f8f8] text-black">
+      <div className="bg-white sticky top-0 z-50 border-b border-zinc-200">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-4xl font-black text-red-500">
+                POS Bistro
+              </h1>
+              <div className="flex items-center gap-2 text-zinc-500 mt-1 text-sm">
+                <MapPin size={14} /> Bengaluru
+              </div>
+            </div>
 
-          <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-2xl backdrop-blur-md">
-            <ShoppingCart size={22} />
-            <span className="font-semibold">{cart.length} Items</span>
+            <div className="hidden md:flex items-center bg-zinc-100 px-4 py-3 rounded-2xl w-[420px]">
+              <Search size={18} className="text-zinc-400" />
+              <input
+                type="text"
+                placeholder="Search for pizza, burger, coffee..."
+                className="bg-transparent outline-none w-full ml-3"
+              />
+            </div>
+
+            <div className="bg-black text-white px-5 py-3 rounded-2xl flex items-center gap-2 shadow-lg">
+              <ShoppingCart size={20} />
+              <span className="font-bold">{cart.length}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 p-6">
+      <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-2">
-            <div className="bg-orange-500 px-4 py-2 rounded-full flex items-center gap-2 whitespace-nowrap">
-              <Pizza size={18} /> Pizza
-            </div>
-            <div className="bg-zinc-900 px-4 py-2 rounded-full flex items-center gap-2 whitespace-nowrap">
-              <Coffee size={18} /> Drinks
-            </div>
-            <div className="bg-zinc-900 px-4 py-2 rounded-full flex items-center gap-2 whitespace-nowrap">
-              <Sandwich size={18} /> Burgers
-            </div>
-            <div className="bg-zinc-900 px-4 py-2 rounded-full flex items-center gap-2 whitespace-nowrap">
-              <IceCream size={18} /> Dessert
-            </div>
+          <div className="mb-8">
+            <h2 className="text-5xl font-black leading-tight">
+              Delicious food,
+              <br />
+              delivered fast.
+            </h2>
+
+            <p className="text-zinc-500 mt-4 text-lg max-w-2xl">
+              Premium restaurant ordering experience with real-time cloud POS.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {menuItems.map((item) => (
               <div
                 key={item.id}
-                className="bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800 hover:border-orange-500 transition-all duration-300 hover:scale-[1.02] shadow-xl"
+                className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-zinc-100"
               >
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="h-48 w-full object-cover"
-                />
+                <div className="relative">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="h-52 w-full object-cover"
+                  />
+
+                  <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full text-sm font-semibold shadow-md">
+                    ₹{item.price}
+                  </div>
+                </div>
 
                 <div className="p-5">
-                  <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-xl font-bold">{item.name}</h2>
-                    <span className="text-orange-400 text-sm">
-                      {item.category}
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-2xl font-bold">{item.name}</h3>
                   </div>
 
-                  <div className="flex items-center justify-between mt-4">
-                    <p className="text-2xl font-extrabold">
-                      ₹{item.price}
-                    </p>
+                  <div className="flex items-center gap-4 mt-3 text-sm text-zinc-500">
+                    <div className="flex items-center gap-1">
+                      <Star size={14} className="fill-yellow-400 text-yellow-400" />
+                      {item.rating}
+                    </div>
 
-                    <button
-                      onClick={() => addToCart(item)}
-                      className="bg-orange-500 hover:bg-orange-600 px-4 py-2 rounded-xl font-semibold flex items-center gap-2 transition-all"
-                    >
-                      <Plus size={18} /> Add
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <Clock3 size={14} />
+                      {item.time}
+                    </div>
                   </div>
+
+                  <button
+                    onClick={() => addToCart(item)}
+                    className="w-full mt-5 bg-red-500 hover:bg-red-600 text-white py-3 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all"
+                  >
+                    <Plus size={18} /> Add to Cart
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-zinc-900 rounded-3xl p-6 border border-zinc-800 h-fit sticky top-6 shadow-2xl">
-          <h2 className="text-3xl font-bold mb-6 flex items-center gap-2">
-            <ShoppingCart /> Cart
-          </h2>
+        <div>
+          <div className="bg-white rounded-3xl p-6 sticky top-28 shadow-lg border border-zinc-100">
+            <h2 className="text-3xl font-black mb-6">
+              Your Cart
+            </h2>
 
-          {cart.length === 0 ? (
-            <div className="text-zinc-400 text-center py-12">
-              Your cart is empty
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {cart.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-black/40 rounded-2xl p-4 border border-zinc-800"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-semibold">{item.name}</h3>
-                      <p className="text-orange-400 mt-1">
-                        ₹{item.price}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => removeItem(item.id)}
-                      className="text-red-400 hover:text-red-500"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => decreaseQty(item.id)}
-                        className="bg-zinc-800 p-2 rounded-lg hover:bg-zinc-700"
-                      >
-                        <Minus size={16} />
-                      </button>
-
-                      <span className="font-bold text-lg">
-                        {item.quantity}
-                      </span>
-
-                      <button
-                        onClick={() => increaseQty(item.id)}
-                        className="bg-zinc-800 p-2 rounded-lg hover:bg-zinc-700"
-                      >
-                        <Plus size={16} />
-                      </button>
-                    </div>
-
-                    <p className="font-bold text-lg">
-                      ₹{item.quantity * item.price}
-                    </p>
-                  </div>
-                </div>
-              ))}
-
-              <div className="border-t border-zinc-700 pt-4 mt-6">
-                <div className="flex items-center justify-between text-xl font-bold">
-                  <span>Total</span>
-                  <span className="text-orange-400">₹{total}</span>
-                </div>
-
-                <button
-                  onClick={placeOrder}
-                  disabled={loading}
-                  className="w-full mt-6 bg-gradient-to-r from-orange-500 to-red-500 hover:opacity-90 transition-all py-4 rounded-2xl font-bold text-lg shadow-lg"
-                >
-                  {loading ? "Processing..." : "Place Order"}
-                </button>
-
-                {success && (
-                  <div className="mt-4 bg-green-500/20 border border-green-500 text-green-400 p-4 rounded-2xl flex items-center gap-2">
-                    <CheckCircle size={20} />
-                    Order placed successfully!
-                  </div>
-                )}
+            {cart.length === 0 ? (
+              <div className="text-center py-12 text-zinc-400">
+                No items added yet.
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="space-y-4">
+                {cart.map((item) => (
+                  <div
+                    key={item.id}
+                    className="border border-zinc-100 rounded-2xl p-4"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-bold text-lg">
+                          {item.name}
+                        </h3>
+                        <p className="text-red-500 font-semibold mt-1">
+                          ₹{item.price}
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() =>
+                          setCart(cart.filter((c) => c.id !== item.id))
+                        }
+                        className="text-zinc-400 hover:text-red-500"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => decreaseQty(item.id)}
+                          className="bg-zinc-100 p-2 rounded-xl"
+                        >
+                          <Minus size={14} />
+                        </button>
+
+                        <span className="font-bold text-lg">
+                          {item.quantity}
+                        </span>
+
+                        <button
+                          onClick={() => increaseQty(item.id)}
+                          className="bg-zinc-100 p-2 rounded-xl"
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+
+                      <div className="font-black text-lg">
+                        ₹{item.quantity * item.price}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="border-t border-zinc-200 pt-5 mt-5">
+                  <div className="flex items-center justify-between text-2xl font-black">
+                    <span>Total</span>
+                    <span>₹{total}</span>
+                  </div>
+
+                  <button
+                    onClick={placeOrder}
+                    disabled={loading}
+                    className="w-full mt-6 bg-black text-white py-4 rounded-2xl font-bold text-lg hover:opacity-90"
+                  >
+                    {loading ? "Processing..." : "Place Order"}
+                  </button>
+
+                  {success && (
+                    <div className="mt-4 bg-green-50 border border-green-200 text-green-600 p-4 rounded-2xl flex items-center gap-2">
+                      <CheckCircle size={18} />
+                      Order placed successfully!
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
