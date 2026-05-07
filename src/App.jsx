@@ -1,249 +1,307 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import axios from "axios";
+import "./App.css";
 
-export default function App() {
-
-  // Load cart from localStorage
-  const [cart, setCart] = useState(() => {
-    const saved = localStorage.getItem("cart");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const menu = [
-    { id: 1, name: "Burger", price: 120 },
-    { id: 2, name: "Pizza", price: 250 },
-    { id: 3, name: "Coke", price: 40 },
-    { id: 4, name: "Fries", price: 90 },
+function App() {
+  const menuItems = [
+    {
+      id: 1,
+      name: "Margherita Pizza",
+      price: 299,
+      image:
+        "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800",
+    },
+    {
+      id: 2,
+      name: "Veg Burger",
+      price: 199,
+      image:
+        "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800",
+    },
+    {
+      id: 3,
+      name: "French Fries",
+      price: 149,
+      image:
+        "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=800",
+    },
+    {
+      id: 4,
+      name: "Cold Coffee",
+      price: 129,
+      image:
+        "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=800",
+    },
   ];
 
-  // Persist cart
-  useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cart));
-  }, [cart]);
+  const [cart, setCart] = useState([]);
 
   const addToCart = (item) => {
-    const existing = cart.find(c => c.id === item.id);
+    const existingItem = cart.find((cartItem) => cartItem.id === item.id);
 
-    if (existing) {
-      setCart(cart.map(c =>
-        c.id === item.id ? { ...c, qty: c.qty + 1 } : c
-      ));
+    if (existingItem) {
+      const updatedCart = cart.map((cartItem) =>
+        cartItem.id === item.id
+          ? { ...cartItem, quantity: cartItem.quantity + 1 }
+          : cartItem
+      );
+
+      setCart(updatedCart);
     } else {
-      setCart([...cart, { ...item, qty: 1 }]);
+      setCart([...cart, { ...item, quantity: 1 }]);
     }
   };
 
-  const increase = (id) => {
-    setCart(cart.map(c =>
-      c.id === id ? { ...c, qty: c.qty + 1 } : c
-    ));
-  };
-
-  const decrease = (id) => {
-    setCart(
-      cart
-        .map(c =>
-          c.id === id ? { ...c, qty: c.qty - 1 } : c
-        )
-        .filter(c => c.qty > 0)
+  const increaseQuantity = (id) => {
+    const updatedCart = cart.map((item) =>
+      item.id === id
+        ? { ...item, quantity: item.quantity + 1 }
+        : item
     );
+
+    setCart(updatedCart);
   };
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const decreaseQuantity = (id) => {
+    const updatedCart = cart
+      .map((item) =>
+        item.id === id
+          ? { ...item, quantity: item.quantity - 1 }
+          : item
+      )
+      .filter((item) => item.quantity > 0);
 
-  const checkout = () => {
-    if (cart.length === 0) return;
-
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-
-    const newOrder = {
-      id: Date.now(),
-      items: cart,
-      total: total,
-      time: new Date().toLocaleString(),
-    };
-
-    localStorage.setItem("orders", JSON.stringify([...orders, newOrder]));
-
-    setCart([]);
-    alert("✅ Order placed!");
+    setCart(updatedCart);
   };
 
-  const viewOrders = () => {
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-    console.log("Orders:", orders);
-    alert(`Total Orders: ${orders.length} (check console)`);
+  const totalAmount = cart.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+
+  const placeOrder = async () => {
+    try {
+      const orderData = {
+        items: cart,
+        totalAmount: totalAmount,
+      };
+
+      const response = await axios.post(
+        "https://restaurant-pos-backend-816k.onrender.com/api/orders",
+        orderData
+      );
+
+      console.log("Order Saved:", response.data);
+
+      alert("🎉 Order placed successfully!");
+
+      setCart([]);
+    } catch (error) {
+      console.error(error);
+
+      alert("❌ Failed to place order");
+    }
   };
 
   return (
-    <div style={styles.container}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#0f172a",
+        color: "white",
+        padding: "30px",
+        fontFamily: "Arial",
+      }}
+    >
+      <h1
+        style={{
+          textAlign: "center",
+          fontSize: "48px",
+          marginBottom: "10px",
+        }}
+      >
+        🍽 Restaurant POS
+      </h1>
 
-      {/* HEADER */}
-      <div style={styles.header}>
-        <h1>🍽️ POS System</h1>
-      </div>
+      <p
+        style={{
+          textAlign: "center",
+          color: "#94a3b8",
+          marginBottom: "40px",
+        }}
+      >
+        Modern Cloud POS System
+      </p>
 
-      <div style={styles.content}>
-
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "2fr 1fr",
+          gap: "30px",
+        }}
+      >
         {/* MENU */}
-        <div style={styles.menu}>
-          <h2>Menu</h2>
+        <div>
+          <h2 style={{ marginBottom: "20px" }}>Menu</h2>
 
-          <div style={styles.menuGrid}>
-            {menu.map(item => (
-              <div key={item.id} style={styles.card}>
-                <h3>{item.name}</h3>
-                <p>₹{item.price}</p>
-                <button
-                  style={styles.addBtn}
-                  onClick={() => addToCart(item)}
-                >
-                  Add
-                </button>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+              gap: "20px",
+            }}
+          >
+            {menuItems.map((item) => (
+              <div
+                key={item.id}
+                style={{
+                  background: "#1e293b",
+                  borderRadius: "20px",
+                  overflow: "hidden",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+                }}
+              >
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  style={{
+                    width: "100%",
+                    height: "180px",
+                    objectFit: "cover",
+                  }}
+                />
+
+                <div style={{ padding: "20px" }}>
+                  <h3>{item.name}</h3>
+
+                  <p
+                    style={{
+                      color: "#38bdf8",
+                      fontSize: "20px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    ₹{item.price}
+                  </p>
+
+                  <button
+                    onClick={() => addToCart(item)}
+                    style={{
+                      marginTop: "10px",
+                      width: "100%",
+                      padding: "12px",
+                      border: "none",
+                      borderRadius: "12px",
+                      background: "#38bdf8",
+                      color: "white",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Add to Cart
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         </div>
 
         {/* CART */}
-        <div style={styles.cart}>
-          <h2>Cart</h2>
+        <div
+          style={{
+            background: "#1e293b",
+            padding: "20px",
+            borderRadius: "20px",
+            height: "fit-content",
+            position: "sticky",
+            top: "20px",
+          }}
+        >
+          <h2>🛒 Cart</h2>
 
-          {cart.length === 0 && (
-            <p style={{ opacity: 0.6 }}>No items added</p>
+          {cart.length === 0 ? (
+            <p style={{ color: "#94a3b8" }}>Cart is empty</p>
+          ) : (
+            <>
+              {cart.map((item) => (
+                <div
+                  key={item.id}
+                  style={{
+                    marginTop: "20px",
+                    paddingBottom: "15px",
+                    borderBottom: "1px solid #334155",
+                  }}
+                >
+                  <h3>{item.name}</h3>
+
+                  <p>₹{item.price}</p>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      marginTop: "10px",
+                    }}
+                  >
+                    <button
+                      onClick={() => decreaseQuantity(item.id)}
+                      style={{
+                        width: "30px",
+                        height: "30px",
+                        borderRadius: "8px",
+                        border: "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      -
+                    </button>
+
+                    <span>{item.quantity}</span>
+
+                    <button
+                      onClick={() => increaseQuantity(item.id)}
+                      style={{
+                        width: "30px",
+                        height: "30px",
+                        borderRadius: "8px",
+                        border: "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              <h2 style={{ marginTop: "30px" }}>
+                Total: ₹{totalAmount}
+              </h2>
+
+              <button
+                onClick={placeOrder}
+                style={{
+                  marginTop: "20px",
+                  width: "100%",
+                  padding: "15px",
+                  border: "none",
+                  borderRadius: "14px",
+                  background: "#22c55e",
+                  color: "white",
+                  fontSize: "18px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                }}
+              >
+                Place Order
+              </button>
+            </>
           )}
-
-          {cart.map(item => (
-            <div key={item.id} style={styles.cartItem}>
-
-              <div>
-                <strong>{item.name}</strong>
-                <p>₹{item.price}</p>
-              </div>
-
-              <div style={styles.qtyControls}>
-                <button onClick={() => decrease(item.id)}>-</button>
-                <span>{item.qty}</span>
-                <button onClick={() => increase(item.id)}>+</button>
-              </div>
-
-              <div>
-                ₹{item.price * item.qty}
-              </div>
-            </div>
-          ))}
-
-          <div style={styles.totalBox}>
-            <h3>Total: ₹{total}</h3>
-
-            <button style={styles.checkoutBtn} onClick={checkout}>
-              Checkout
-            </button>
-
-            <button style={styles.secondaryBtn} onClick={viewOrders}>
-              View Orders
-            </button>
-          </div>
         </div>
-
       </div>
     </div>
   );
 }
 
-/* STYLES */
-const styles = {
-  container: {
-    fontFamily: "Arial, sans-serif",
-    background: "#f5f6fa",
-    minHeight: "100vh",
-  },
-
-  header: {
-    background: "#111",
-    color: "#fff",
-    padding: "20px 30px",
-  },
-
-  content: {
-    display: "flex",
-    gap: "30px",
-    padding: "30px",
-  },
-
-  menu: {
-    flex: 2,
-  },
-
-  menuGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-    gap: "20px",
-  },
-
-  card: {
-    background: "#fff",
-    padding: "20px",
-    borderRadius: "12px",
-    boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
-    textAlign: "center",
-  },
-
-  addBtn: {
-    marginTop: "10px",
-    padding: "8px 12px",
-    border: "none",
-    background: "#007bff",
-    color: "#fff",
-    borderRadius: "6px",
-    cursor: "pointer",
-  },
-
-  cart: {
-    flex: 1,
-    background: "#fff",
-    padding: "20px",
-    borderRadius: "12px",
-    boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
-  },
-
-  cartItem: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "15px",
-  },
-
-  qtyControls: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-
-  totalBox: {
-    marginTop: "20px",
-    borderTop: "1px solid #eee",
-    paddingTop: "15px",
-  },
-
-  checkoutBtn: {
-    marginTop: "10px",
-    width: "100%",
-    padding: "10px",
-    background: "#28a745",
-    color: "#fff",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-  },
-
-  secondaryBtn: {
-    marginTop: "10px",
-    width: "100%",
-    padding: "10px",
-    background: "#555",
-    color: "#fff",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-  },
-};
+export default App;
