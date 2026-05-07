@@ -142,106 +142,102 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f8f8] text-black">
-      <div className="bg-white sticky top-0 z-50 border-b border-zinc-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-4xl font-black text-red-500">
-                POS Bistro
-              </h1>
-              <div className="flex items-center gap-2 text-zinc-500 mt-1 text-sm">
-                <MapPin size={14} /> Bengaluru
-              </div>
+    <div className="min-h-screen bg-[#f5f5f7] text-black">
+      <div className="bg-white border-b border-zinc-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-6">
+          <div>
+            <h1 className="text-3xl font-black text-red-500 tracking-tight">
+              POS Bistro
+            </h1>
+            <div className="flex items-center gap-1 text-zinc-500 text-sm mt-1">
+              <MapPin size={13} /> Bengaluru
             </div>
+          </div>
 
-            <div className="hidden md:flex items-center bg-zinc-100 px-4 py-3 rounded-2xl w-[420px]">
-              <Search size={18} className="text-zinc-400" />
-              <input
-                type="text"
-                placeholder="Search for pizza, burger, coffee..."
-                className="bg-transparent outline-none w-full ml-3"
-              />
-            </div>
+          <div className="flex-1 max-w-2xl hidden md:flex items-center bg-zinc-100 rounded-2xl px-4 py-3">
+            <Search size={18} className="text-zinc-400" />
+            <input
+              type="text"
+              placeholder="Search for dishes..."
+              className="bg-transparent outline-none w-full ml-3 text-sm"
+            />
+          </div>
 
-            <div className="bg-black text-white px-5 py-3 rounded-2xl flex items-center gap-2 shadow-lg">
-              <ShoppingCart size={20} />
-              <span className="font-bold">{cart.length}</span>
-            </div>
+          <div className="bg-black text-white rounded-2xl px-5 py-3 flex items-center gap-2 shadow-lg">
+            <ShoppingCart size={18} />
+            <span className="font-bold">{cart.length}</span>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
+      <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
+        <div className="flex-1">
           <div className="mb-8">
-            <h2 className="text-5xl font-black leading-tight">
-              Delicious food,
-              <br />
-              delivered fast.
+            <h2 className="text-5xl font-black leading-tight tracking-tight">
+              Discover amazing food.
             </h2>
 
-            <p className="text-zinc-500 mt-4 text-lg max-w-2xl">
-              Premium restaurant ordering experience with real-time cloud POS.
+            <p className="text-zinc-500 text-lg mt-3">
+              Modern cloud-native restaurant ordering experience.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-5">
             {menuItems.map((item) => (
               <div
                 key={item.id}
-                className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-zinc-100"
+                className="bg-white rounded-3xl p-4 flex items-center justify-between shadow-sm border border-zinc-100 hover:shadow-lg transition-all"
               >
-                <div className="relative">
+                <div className="flex items-center gap-5">
                   <img
                     src={item.image}
                     alt={item.name}
-                    className="h-52 w-full object-cover"
+                    className="w-28 h-28 rounded-2xl object-cover"
                   />
 
-                  <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full text-sm font-semibold shadow-md">
-                    ₹{item.price}
+                  <div>
+                    <h3 className="text-2xl font-bold tracking-tight">
+                      {item.name}
+                    </h3>
+
+                    <div className="flex items-center gap-4 mt-2 text-sm text-zinc-500">
+                      <div className="flex items-center gap-1 bg-green-50 text-green-700 px-2 py-1 rounded-lg font-semibold">
+                        <Star size={13} className="fill-green-700" />
+                        {item.rating}
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <Clock3 size={14} />
+                        {item.time}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 text-2xl font-black text-red-500">
+                      ₹{item.price}
+                    </div>
                   </div>
                 </div>
 
-                <div className="p-5">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-2xl font-bold">{item.name}</h3>
-                  </div>
-
-                  <div className="flex items-center gap-4 mt-3 text-sm text-zinc-500">
-                    <div className="flex items-center gap-1">
-                      <Star size={14} className="fill-yellow-400 text-yellow-400" />
-                      {item.rating}
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <Clock3 size={14} />
-                      {item.time}
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => addToCart(item)}
-                    className="w-full mt-5 bg-red-500 hover:bg-red-600 text-white py-3 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all"
-                  >
-                    <Plus size={18} /> Add to Cart
-                  </button>
-                </div>
+                <button
+                  onClick={() => addToCart(item)}
+                  className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all shadow-md"
+                >
+                  <Plus size={18} /> Add
+                </button>
               </div>
             ))}
           </div>
         </div>
 
-        <div>
-          <div className="bg-white rounded-3xl p-6 sticky top-28 shadow-lg border border-zinc-100">
-            <h2 className="text-3xl font-black mb-6">
+        <div className="w-[380px] hidden lg:block">
+          <div className="bg-white rounded-3xl p-6 sticky top-28 shadow-xl border border-zinc-100">
+            <h2 className="text-3xl font-black mb-6 tracking-tight">
               Your Cart
             </h2>
 
             {cart.length === 0 ? (
-              <div className="text-center py-12 text-zinc-400">
-                No items added yet.
+              <div className="text-center py-16 text-zinc-400">
+                Cart is empty.
               </div>
             ) : (
               <div className="space-y-4">
@@ -255,7 +251,7 @@ function App() {
                         <h3 className="font-bold text-lg">
                           {item.name}
                         </h3>
-                        <p className="text-red-500 font-semibold mt-1">
+                        <p className="text-red-500 font-bold mt-1">
                           ₹{item.price}
                         </p>
                       </div>
@@ -301,19 +297,19 @@ function App() {
                 <div className="border-t border-zinc-200 pt-5 mt-5">
                   <div className="flex items-center justify-between text-2xl font-black">
                     <span>Total</span>
-                    <span>₹{total}</span>
+                    <span className="text-red-500">₹{total}</span>
                   </div>
 
                   <button
                     onClick={placeOrder}
                     disabled={loading}
-                    className="w-full mt-6 bg-black text-white py-4 rounded-2xl font-bold text-lg hover:opacity-90"
+                    className="w-full mt-6 bg-black text-white py-4 rounded-2xl font-bold text-lg hover:opacity-90 shadow-lg"
                   >
                     {loading ? "Processing..." : "Place Order"}
                   </button>
 
                   {success && (
-                    <div className="mt-4 bg-green-50 border border-green-200 text-green-600 p-4 rounded-2xl flex items-center gap-2">
+                    <div className="mt-4 bg-green-50 border border-green-200 text-green-700 p-4 rounded-2xl flex items-center gap-2 font-semibold">
                       <CheckCircle size={18} />
                       Order placed successfully!
                     </div>
