@@ -186,17 +186,17 @@ function App() {
             {menuItems.map((item) => (
               <div
                 key={item.id}
-                className="bg-white rounded-3xl p-4 flex items-center justify-between shadow-sm border border-zinc-100 hover:shadow-lg transition-all"
+                className="bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-zinc-100 hover:shadow-md transition-all"
               >
                 <div className="flex items-center gap-5">
                   <img
                     src={item.image}
                     alt={item.name}
-                    className="w-28 h-28 rounded-2xl object-cover"
+                    className="w-20 h-20 rounded-2xl object-cover shadow-md flex-shrink-0"
                   />
 
                   <div>
-                    <h3 className="text-2xl font-bold tracking-tight">
+                    <h3 className="text-xl font-bold tracking-tight text-zinc-900">
                       {item.name}
                     </h3>
 
@@ -212,7 +212,7 @@ function App() {
                       </div>
                     </div>
 
-                    <div className="mt-3 text-2xl font-black text-red-500">
+                    <div className="mt-2 text-lg font-black text-red-500">
                       ₹{item.price}
                     </div>
                   </div>
@@ -220,7 +220,7 @@ function App() {
 
                 <button
                   onClick={() => addToCart(item)}
-                  className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all shadow-md"
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-semibold flex items-center gap-2 transition-all shadow-md text-sm"
                 >
                   <Plus size={18} /> Add
                 </button>
