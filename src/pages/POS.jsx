@@ -247,14 +247,28 @@ export default function App() {
 
   const placeOrder = async () => {
     if (cart.length === 0) return;
+
     try {
       setLoading(true);
+
+      const token = localStorage.getItem("token");
+
       await axios.post(
         "https://restaurant-pos-backend-816k.onrender.com/api/orders",
-        { items: cart, total }
+        {
+          items: cart,
+          total,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
+
       setCart([]);
       setSuccess(true);
+
       setTimeout(() => setSuccess(false), 3500);
     } catch (err) {
       console.error(err);
