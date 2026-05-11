@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import {
   Banknote,
@@ -85,6 +85,23 @@ const menuItems = [
 
 const tables = ["T1", "T2", "T3", "T4", "Takeaway"];
 const modes = ["Dine In", "Takeaway", "Delivery"];
+const API_BASE = "https://restaurant-pos-backend-816k.onrender.com/api";
+const OPEN_STATUSES = ["PLACED", "ACCEPTED", "PREPARING", "READY"];
+const STATUS_FLOW = ["PLACED", "ACCEPTED", "PREPARING", "READY", "SERVED"];
+
+const formatStatus = (status) =>
+  status
+    .toLowerCase()
+    .split("_")
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(" ");
+
+const nextStatusFor = (status) => {
+  const index = STATUS_FLOW.indexOf(status);
+  return index >= 0 && index < STATUS_FLOW.length - 1
+    ? STATUS_FLOW[index + 1]
+    : null;
+};
 
 function MenuCard({ item, qty, onAdd, onDecrease }) {
   return (
@@ -160,6 +177,79 @@ function CartItem({ item, onAdd, onDecrease, onRemove }) {
   );
 }
 
+function ActiveOrders({ orders, loading, onRefresh, onStatusChange }) {
+  return (
+    <section className="orders-panel">
+      <div className="panel-title">
+        <h2>
+          <ReceiptText size={20} />
+          Open Tickets
+        </h2>
+        <button className="refresh-btn" onClick={onRefresh} disabled={loading}>
+          {loading ? "Refreshing" : "Refresh"}
+        </button>
+      </div>
+
+      {orders.length === 0 ? (
+        <div className="orders-empty">
+          No open tickets. Place an order to start the kitchen flow.
+        </div>
+      ) : (
+        <div className="orders-grid">
+          {orders.map((order) => {
+            const nextStatus = nextStatusFor(order.status);
+
+            return (
+              <article className="order-card" key={order._id}>
+                <div className="order-card-top">
+                  <div>
+                    <strong>{order.tableName || "Counter"}</strong>
+                    <span>{order.orderType?.replace("_", " ") || "DINE IN"}</span>
+                  </div>
+                  <span className={`status-badge status-${order.status?.toLowerCase()}`}>
+                    {formatStatus(order.status || "PLACED")}
+                  </span>
+                </div>
+
+                <div className="order-lines">
+                  {order.items?.slice(0, 3).map((item, index) => (
+                    <div key={`${order._id}-${index}`}>
+                      <span>
+                        {item.quantity} x {item.name}
+                      </span>
+                      <strong>₹{item.lineTotal || item.price * item.quantity}</strong>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="order-card-bottom">
+                  <strong>₹{order.totalAmount}</strong>
+                  <div>
+                    {nextStatus && (
+                      <button
+                        className="order-action"
+                        onClick={() => onStatusChange(order._id, nextStatus)}
+                      >
+                        Mark {formatStatus(nextStatus)}
+                      </button>
+                    )}
+                    <button
+                      className="order-action ghost"
+                      onClick={() => onStatusChange(order._id, "CANCELLED")}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function POS({ user, logout }) {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -168,6 +258,8 @@ export default function POS({ user, logout }) {
   const [category, setCategory] = useState("All");
   const [activeTable, setActiveTable] = useState("T1");
   const [mode, setMode] = useState("Dine In");
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
   const categories = useMemo(
     () => ["All", ...new Set(menuItems.map((item) => item.category))],
@@ -213,11 +305,69 @@ export default function POS({ user, logout }) {
     setCart((prev) => prev.filter((c) => c.id !== id));
   };
 
+  const openOrders = useMemo(
+    () => orders.filter((order) => OPEN_STATUSES.includes(order.status)),
+    [orders]
+  );
+
+  const activeTableOrders = useMemo(
+    () => openOrders.filter((order) => order.tableName === activeTable),
+    [activeTable, openOrders]
+  );
+
   const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
   const tax = Math.round(subtotal * 0.05);
   const service = cart.length ? 24 : 0;
   const total = subtotal + tax + service;
   const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
+  const openTicketValue = openOrders.reduce(
+    (sum, order) => sum + Number(order.totalAmount || 0),
+    0
+  );
+
+  const getAuthHeaders = useCallback(() => {
+    const token = localStorage.getItem("token");
+    return {
+      Authorization: `Bearer ${token}`,
+    };
+  }, []);
+
+  const fetchOrders = useCallback(async () => {
+    try {
+      setOrdersLoading(true);
+      const res = await axios.get(`${API_BASE}/orders`, {
+        headers: getAuthHeaders(),
+      });
+      setOrders(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, [getAuthHeaders]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
+
+  const updateOrderStatus = async (orderId, status) => {
+    try {
+      const res = await axios.patch(
+        `${API_BASE}/orders/${orderId}/status`,
+        { status },
+        {
+          headers: getAuthHeaders(),
+        }
+      );
+
+      setOrders((prev) =>
+        prev.map((order) => (order._id === orderId ? res.data : order))
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update order status.");
+    }
+  };
 
   const placeOrder = async () => {
     if (cart.length === 0) return;
@@ -227,8 +377,8 @@ export default function POS({ user, logout }) {
 
       const token = localStorage.getItem("token");
 
-      await axios.post(
-        "https://restaurant-pos-backend-816k.onrender.com/api/orders",
+      const res = await axios.post(
+        `${API_BASE}/orders`,
         {
           items: cart,
           total,
@@ -242,6 +392,7 @@ export default function POS({ user, logout }) {
         }
       );
 
+      setOrders((prev) => [res.data, ...prev]);
       setCart([]);
       setSuccess(true);
 
@@ -558,11 +709,143 @@ export default function POS({ user, logout }) {
           box-shadow: 0 10px 24px rgba(245,166,35,0.22);
         }
 
-        .menu-panel {
+        .menu-panel, .orders-panel {
           border-radius: 8px;
           border: 1px solid rgba(255,255,255,0.09);
           background: rgba(255,255,255,0.045);
           padding: 16px;
+        }
+
+        .refresh-btn {
+          height: 34px;
+          padding: 0 12px;
+          border-radius: 8px;
+          border: 1px solid rgba(255,255,255,0.12);
+          color: rgba(255,255,255,0.72);
+          background: rgba(255,255,255,0.06);
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .refresh-btn:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+        }
+
+        .orders-empty {
+          min-height: 74px;
+          display: grid;
+          place-items: center;
+          border-radius: 8px;
+          border: 1px dashed rgba(255,255,255,0.12);
+          color: rgba(255,255,255,0.44);
+          font-size: 13px;
+          text-align: center;
+        }
+
+        .orders-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .order-card {
+          border-radius: 8px;
+          border: 1px solid rgba(255,255,255,0.09);
+          background: rgba(0,0,0,0.2);
+          padding: 12px;
+        }
+
+        .order-card-top, .order-card-bottom {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .order-card-top strong {
+          display: block;
+          color: #fff;
+          font-size: 16px;
+        }
+
+        .order-card-top span:not(.status-badge) {
+          display: block;
+          margin-top: 3px;
+          color: rgba(255,255,255,0.42);
+          font-size: 11px;
+          font-weight: 800;
+        }
+
+        .status-badge {
+          flex: 0 0 auto;
+          padding: 6px 8px;
+          border-radius: 999px;
+          color: #150d06;
+          background: #ffd166;
+          font-size: 11px;
+          font-weight: 1000;
+        }
+
+        .status-ready {
+          background: #79f2dd;
+        }
+
+        .status-preparing {
+          background: #ffb86b;
+        }
+
+        .order-lines {
+          display: grid;
+          gap: 8px;
+          margin: 12px 0;
+          color: rgba(255,255,255,0.72);
+          font-size: 13px;
+        }
+
+        .order-lines div {
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .order-lines strong {
+          color: rgba(255,255,255,0.9);
+        }
+
+        .order-card-bottom {
+          align-items: center;
+          padding-top: 10px;
+          border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .order-card-bottom > strong {
+          color: #ffd166;
+          font-size: 18px;
+        }
+
+        .order-card-bottom div {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          gap: 8px;
+        }
+
+        .order-action {
+          min-height: 32px;
+          padding: 0 10px;
+          border: 0;
+          border-radius: 8px;
+          color: #120c05;
+          background: #ffd166;
+          font-size: 12px;
+          font-weight: 1000;
+        }
+
+        .order-action.ghost {
+          color: rgba(255,255,255,0.72);
+          background: rgba(255,255,255,0.08);
+          border: 1px solid rgba(255,255,255,0.1);
         }
 
         .panel-title {
@@ -1049,7 +1332,7 @@ export default function POS({ user, logout }) {
             grid-template-columns: 1fr;
           }
 
-          .dish-grid {
+          .dish-grid, .orders-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
@@ -1066,7 +1349,7 @@ export default function POS({ user, logout }) {
         }
 
         @media (max-width: 520px) {
-          .dish-grid {
+          .dish-grid, .orders-grid {
             grid-template-columns: 1fr;
           }
 
@@ -1136,7 +1419,7 @@ export default function POS({ user, logout }) {
               <div className="shift-panel">
                 <div className="metric">
                   <span>Open tickets</span>
-                  <strong>{cart.length ? 1 : 0}</strong>
+                  <strong>{openOrders.length}</strong>
                 </div>
                 <div className="metric">
                   <span>Current table</span>
@@ -1144,11 +1427,11 @@ export default function POS({ user, logout }) {
                 </div>
                 <div className="metric">
                   <span>Items</span>
-                  <strong>{totalItems}</strong>
+                  <strong>{activeTableOrders.length}</strong>
                 </div>
                 <div className="metric">
                   <span>Ticket value</span>
-                  <strong>₹{total}</strong>
+                  <strong>₹{openTicketValue}</strong>
                 </div>
               </div>
             </section>
@@ -1179,6 +1462,13 @@ export default function POS({ user, logout }) {
                 ))}
               </div>
             </div>
+
+            <ActiveOrders
+              orders={openOrders}
+              loading={ordersLoading}
+              onRefresh={fetchOrders}
+              onStatusChange={updateOrderStatus}
+            />
 
             <section className="menu-panel">
               <div className="panel-title">
