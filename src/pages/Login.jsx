@@ -1,21 +1,30 @@
 import { useState } from "react";
 import axios from "axios";
 
+const API_BASE = "https://restaurant-pos-backend-816k.onrender.com/api";
+
 function Login({ setUser }) {
+  const [mode, setMode] = useState("login");
+  const [restaurantName, setRestaurantName] = useState("Jaideep Bistro");
+  const [ownerName, setOwnerName] = useState("Jaideep");
   const [email, setEmail] = useState("admin@test.com");
   const [password, setPassword] = useState("123456");
   const [loading, setLoading] = useState(false);
 
+  const storeSession = (data) => {
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+    setUser(data.user);
+  };
+
   const login = async () => {
     try {
       setLoading(true);
-      const res = await axios.post(
-        "https://restaurant-pos-backend-816k.onrender.com/api/auth/login",
-        { email, password }
-      );
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      setUser(res.data.user);
+      const res = await axios.post(API_BASE + "/auth/login", {
+        email,
+        password,
+      });
+      storeSession(res.data);
     } catch (err) {
       console.error(err);
       alert("Login failed");
@@ -23,6 +32,26 @@ function Login({ setUser }) {
       setLoading(false);
     }
   };
+
+  const signupRestaurant = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.post(API_BASE + "/auth/signup-restaurant", {
+        restaurantName,
+        ownerName,
+        email,
+        password,
+      });
+      storeSession(res.data);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Restaurant signup failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isSignup = mode === "signup";
 
   return (
     <>
@@ -204,6 +233,34 @@ function Login({ setUser }) {
           font-size: 13px; color: rgba(255,255,255,0.4); margin-bottom: 36px;
         }
 
+        .pos-mode-switch {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          padding: 6px;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.045);
+          margin-bottom: 24px;
+        }
+        .pos-mode-btn {
+          border: 0;
+          border-radius: 12px;
+          padding: 10px 12px;
+          color: rgba(255,255,255,0.52);
+          background: transparent;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 12px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .pos-mode-btn.active {
+          color: #130d05;
+          background: linear-gradient(135deg, #FFD166, #F5A623);
+          box-shadow: 0 10px 24px rgba(245,166,35,0.22);
+        }
+
         /* Demo badge */
         .pos-demo {
           background: linear-gradient(135deg, rgba(245,166,35,0.15), rgba(255,78,26,0.1));
@@ -332,16 +389,71 @@ function Login({ setUser }) {
 
           {/* ── RIGHT PANEL ── */}
           <div className="pos-right">
-            <div className="pos-form-title">Welcome back</div>
-            <div className="pos-form-sub">Sign in to your dashboard</div>
+            <div className="pos-form-title">
+              {isSignup ? "Create restaurant" : "Welcome back"}
+            </div>
+            <div className="pos-form-sub">
+              {isSignup
+                ? "Start a new POS workspace in seconds"
+                : "Sign in to your dashboard"}
+            </div>
 
-            <div className="pos-demo">
+            <div className="pos-mode-switch">
+              <button
+                className={`pos-mode-btn ${!isSignup ? "active" : ""}`}
+                onClick={() => setMode("login")}
+              >
+                Sign in
+              </button>
+              <button
+                className={`pos-mode-btn ${isSignup ? "active" : ""}`}
+                onClick={() => setMode("signup")}
+              >
+                Create
+              </button>
+            </div>
+
+            {!isSignup && (
+              <div className="pos-demo">
               <div className="pos-demo-title">✦ Demo Access</div>
               <div className="pos-demo-creds">
                 <strong>admin@test.com</strong><br />
                 password: <strong>123456</strong>
               </div>
-            </div>
+              </div>
+            )}
+
+            {isSignup && (
+              <>
+                <div className="pos-field">
+                  <label className="pos-label">Restaurant Name</label>
+                  <div className="pos-input-wrap">
+                    <span className="pos-input-icon">🍽️</span>
+                    <input
+                      className="pos-input"
+                      type="text"
+                      placeholder="Jaideep Bistro"
+                      value={restaurantName}
+                      onChange={(e) => setRestaurantName(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="pos-field">
+                  <label className="pos-label">Owner Name</label>
+                  <div className="pos-input-wrap">
+                    <span className="pos-input-icon">👤</span>
+                    <input
+                      className="pos-input"
+                      type="text"
+                      placeholder="Restaurant owner"
+                      value={ownerName}
+                      onChange={(e) => setOwnerName(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="pos-field">
               <label className="pos-label">Email Address</label>
@@ -373,14 +485,21 @@ function Login({ setUser }) {
 
             <button
               className="pos-btn"
-              onClick={login}
+              onClick={isSignup ? signupRestaurant : login}
               disabled={loading}
             >
-              {loading ? "Signing in…" : "Login to Dashboard →"}
+              {loading
+                ? isSignup
+                  ? "Creating restaurant…"
+                  : "Signing in…"
+                : isSignup
+                  ? "Create Restaurant →"
+                  : "Login to Dashboard →"}
             </button>
 
             <div className="pos-footer">
-              Secured by <strong>256-bit encryption</strong>
+              {isSignup ? "Creates an admin account for your restaurant" : "Secured by "}
+              {!isSignup && <strong>256-bit encryption</strong>}
             </div>
           </div>
         </div>
