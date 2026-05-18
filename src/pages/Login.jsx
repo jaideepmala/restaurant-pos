@@ -1,7 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
-
-const API_BASE = "https://restaurant-pos-backend-816k.onrender.com/api";
+import { API_BASE } from "../api";
 
 function Login({ setUser }) {
   const [mode, setMode] = useState("login");

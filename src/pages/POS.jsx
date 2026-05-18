@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { API_BASE, getAuthHeaders } from "../api";
+import { connectRealtime } from "../realtime";
 import {
   Banknote,
   Bell,
@@ -20,7 +22,7 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 
-const menuItems = [
+const fallbackMenuItems = [
   {
     id: 1,
     name: "Margherita Pizza",
@@ -83,9 +85,8 @@ const menuItems = [
   },
 ];
 
-const tables = ["T1", "T2", "T3", "T4", "Takeaway"];
+const fallbackTables = ["T1", "T2", "T3", "T4", "Takeaway"];
 const modes = ["Dine In", "Takeaway", "Delivery"];
-const API_BASE = "https://restaurant-pos-backend-816k.onrender.com/api";
 const OPEN_STATUSES = ["PLACED", "ACCEPTED", "PREPARING", "READY"];
 const STATUS_FLOW = ["PLACED", "ACCEPTED", "PREPARING", "READY", "SERVED"];
 
@@ -131,7 +132,7 @@ function MenuCard({ item, qty, onAdd, onDecrease }) {
             </button>
           ) : (
             <div className="qty-stepper" aria-label={`${item.name} quantity`}>
-              <button onClick={() => onDecrease(item.id)} aria-label="Decrease">
+              <button onClick={() => onDecrease(getItemId(item))} aria-label="Decrease">
                 <Minus size={14} />
               </button>
               <span>{qty}</span>
@@ -156,7 +157,7 @@ function CartItem({ item, onAdd, onDecrease, onRemove }) {
       </div>
       <div className="ticket-controls">
         <div className="mini-stepper">
-          <button onClick={() => onDecrease(item.id)} aria-label="Decrease">
+          <button onClick={() => onDecrease(getItemId(item))} aria-label="Decrease">
             <Minus size={13} />
           </button>
           <span>{item.quantity}</span>
@@ -168,7 +169,7 @@ function CartItem({ item, onAdd, onDecrease, onRemove }) {
       </div>
       <button
         className="icon-danger"
-        onClick={() => onRemove(item.id)}
+        onClick={() => onRemove(getItemId(item))}
         aria-label={`Remove ${item.name}`}
       >
         <Trash2 size={15} />
@@ -258,12 +259,17 @@ export default function POS({ user, logout }) {
   const [category, setCategory] = useState("All");
   const [activeTable, setActiveTable] = useState("T1");
   const [mode, setMode] = useState("Dine In");
+  const [menuItems, setMenuItems] = useState([]);
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [restaurant, setRestaurant] = useState(null);
+  const [lastPlacedOrder, setLastPlacedOrder] = useState(null);
+
+  const tables = restaurant?.tables?.length ? restaurant.tables : fallbackTables;
 
   const categories = useMemo(
     () => ["All", ...new Set(menuItems.map((item) => item.category))],
-    []
+    [menuItems]
   );
 
   const filteredItems = useMemo(() => {
@@ -274,19 +280,21 @@ export default function POS({ user, logout }) {
       const matchesQuery = item.name.toLowerCase().includes(normalizedQuery);
       return matchesCategory && matchesQuery;
     });
-  }, [category, query]);
+  }, [category, query, menuItems]);
+
+  const getItemId = (item) => item._id || item.id;
 
   const getQty = (id) => {
-    const item = cart.find((c) => c.id === id);
+    const item = cart.find((c) => getItemId(c) === id);
     return item ? item.quantity : 0;
   };
 
   const addToCart = (item) => {
     setCart((prev) => {
-      const existing = prev.find((c) => c.id === item.id);
+      const existing = prev.find((c) => getItemId(c) === getItemId(item));
       if (existing) {
         return prev.map((c) =>
-          c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c
+          getItemId(c) === getItemId(item) ? { ...c, quantity: c.quantity + 1 } : c
         );
       }
       return [...prev, { ...item, quantity: 1 }];
@@ -296,13 +304,13 @@ export default function POS({ user, logout }) {
   const decreaseQty = (id) => {
     setCart((prev) =>
       prev
-        .map((c) => (c.id === id ? { ...c, quantity: c.quantity - 1 } : c))
+        .map((c) => (getItemId(c) === id ? { ...c, quantity: c.quantity - 1 } : c))
         .filter((c) => c.quantity > 0)
     );
   };
 
   const removeFromCart = (id) => {
-    setCart((prev) => prev.filter((c) => c.id !== id));
+    setCart((prev) => prev.filter((c) => getItemId(c) !== id));
   };
 
   const openOrders = useMemo(
@@ -316,8 +324,8 @@ export default function POS({ user, logout }) {
   );
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-  const tax = Math.round(subtotal * 0.05);
-  const service = cart.length ? 24 : 0;
+  const tax = Math.round(subtotal * Number(restaurant?.taxRate ?? 0.05));
+  const service = cart.length ? Number(restaurant?.serviceCharge ?? 24) : 0;
   const total = subtotal + tax + service;
   const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
   const openTicketValue = openOrders.reduce(
@@ -325,30 +333,78 @@ export default function POS({ user, logout }) {
     0
   );
 
-  const getAuthHeaders = useCallback(() => {
-    const token = localStorage.getItem("token");
-    return {
-      Authorization: `Bearer ${token}`,
-    };
+  const fetchProducts = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/products`, {
+        headers: getAuthHeaders(),
+      });
+      const availableProducts = res.data
+        .filter((product) => product.isAvailable)
+        .map((product) => ({
+          ...product,
+          id: product._id,
+          image:
+            product.image ||
+            "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=900&auto=format&fit=crop",
+          rating: 4.7,
+          time: "15m",
+        }));
+      setMenuItems(availableProducts.length ? availableProducts : fallbackMenuItems);
+    } catch (err) {
+      console.error(err);
+      setMenuItems(fallbackMenuItems);
+    }
   }, []);
 
   const fetchOrders = useCallback(async () => {
     try {
       setOrdersLoading(true);
-      const res = await axios.get(`${API_BASE}/orders`, {
-        headers: getAuthHeaders(),
-      });
+      const res = await axios.get(`${API_BASE}/orders`, { headers: getAuthHeaders() });
       setOrders(res.data);
     } catch (err) {
       console.error(err);
     } finally {
       setOrdersLoading(false);
     }
-  }, [getAuthHeaders]);
+  }, []);
+
+  const fetchRestaurant = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/restaurant/me`, { headers: getAuthHeaders() });
+      setRestaurant(res.data);
+      if (res.data.tables?.length) setActiveTable(res.data.tables[0]);
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
 
   useEffect(() => {
+    fetchProducts();
     fetchOrders();
-  }, [fetchOrders]);
+    fetchRestaurant();
+  }, [fetchProducts, fetchOrders, fetchRestaurant]);
+
+  useEffect(() => {
+    const socket = connectRealtime({
+      onOrderCreated: (order) => {
+        setOrders((prev) =>
+          prev.some((existing) => existing._id === order._id)
+            ? prev
+            : [order, ...prev]
+        );
+      },
+      onOrderStatusUpdated: (updatedOrder) => {
+        setOrders((prev) =>
+          prev.map((order) =>
+            order._id === updatedOrder._id ? updatedOrder : order
+          )
+        );
+      },
+      onProductChanged: () => fetchProducts(),
+    });
+
+    return () => socket?.disconnect();
+  }, [fetchProducts]);
 
   const updateOrderStatus = async (orderId, status) => {
     try {
@@ -375,8 +431,6 @@ export default function POS({ user, logout }) {
     try {
       setLoading(true);
 
-      const token = localStorage.getItem("token");
-
       const res = await axios.post(
         `${API_BASE}/orders`,
         {
@@ -386,14 +440,17 @@ export default function POS({ user, logout }) {
           mode,
         },
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: getAuthHeaders(),
         }
       );
 
-      setOrders((prev) => [res.data, ...prev]);
+      setOrders((prev) =>
+        prev.some((order) => order._id === res.data._id)
+          ? prev
+          : [res.data, ...prev]
+      );
       setCart([]);
+      setLastPlacedOrder(res.data);
       setSuccess(true);
 
       setTimeout(() => setSuccess(false), 3500);
@@ -403,6 +460,15 @@ export default function POS({ user, logout }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const printReceipt = () => {
+    if (!lastPlacedOrder) return;
+    const lines = lastPlacedOrder.items.map((item) => `<tr><td>${item.quantity} x ${item.name}</td><td style="text-align:right">₹${item.lineTotal}</td></tr>`).join("");
+    const win = window.open("", "_blank", "width=420,height=640");
+    win.document.write(`<html><head><title>Receipt #${lastPlacedOrder.orderNumber}</title></head><body style="font-family:Arial;padding:20px"><h2>${restaurant?.name || "Restaurant"}</h2><p>Receipt #${lastPlacedOrder.orderNumber}</p><p>${lastPlacedOrder.tableName || "Counter"}</p><table style="width:100%">${lines}</table><hr/><p>Subtotal: ₹${lastPlacedOrder.subtotal}</p><p>Tax: ₹${lastPlacedOrder.tax}</p><p>Service: ₹${lastPlacedOrder.serviceCharge}</p><h3>Total: ₹${lastPlacedOrder.totalAmount}</h3></body></html>`);
+    win.document.close();
+    win.print();
   };
 
   return (
@@ -1484,9 +1550,9 @@ export default function POS({ user, logout }) {
               <div className="dish-grid">
                 {filteredItems.map((item) => (
                   <MenuCard
-                    key={item.id}
+                    key={getItemId(item)}
                     item={item}
-                    qty={getQty(item.id)}
+                    qty={getQty(getItemId(item))}
                     onAdd={addToCart}
                     onDecrease={decreaseQty}
                   />
@@ -1533,7 +1599,7 @@ export default function POS({ user, logout }) {
               ) : (
                 cart.map((item) => (
                   <CartItem
-                    key={item.id}
+                    key={getItemId(item)}
                     item={item}
                     onAdd={addToCart}
                     onDecrease={decreaseQty}
