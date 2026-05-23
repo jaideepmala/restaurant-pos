@@ -378,9 +378,12 @@ export default function POS({ user, logout }) {
   }, []);
 
   useEffect(() => {
-    fetchProducts();
-    fetchOrders();
-    fetchRestaurant();
+    const timer = setTimeout(() => {
+      fetchProducts();
+      fetchOrders();
+      fetchRestaurant();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchProducts, fetchOrders, fetchRestaurant]);
 
   useEffect(() => {

@@ -15,7 +15,12 @@ export default function StaffAdmin() {
     setStaff(res.data);
   }, []);
 
-  useEffect(() => { fetchStaff(); }, [fetchStaff]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchStaff();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchStaff]);
 
   const createStaff = async () => {
     if (!form.name || !form.email || !form.password) return;
