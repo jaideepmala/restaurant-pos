@@ -25,7 +25,10 @@ export default function MenuAdmin() {
   }, []);
 
   useEffect(() => {
-    fetchProducts();
+    const timer = setTimeout(() => {
+      fetchProducts();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchProducts]);
 
   useEffect(() => {

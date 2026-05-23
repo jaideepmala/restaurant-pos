@@ -9,7 +9,12 @@ export default function RestaurantSettings() {
     const res = await axios.get(API_BASE + "/restaurant/me", { headers: getAuthHeaders() });
     setForm({ ...res.data, tablesText: (res.data.tables || []).join(", ") });
   }, []);
-  useEffect(()=>{ fetchSettings(); }, [fetchSettings]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchSettings();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchSettings]);
 
   const save = async () => {
     const payload = {
