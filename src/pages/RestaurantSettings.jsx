@@ -35,6 +35,8 @@ export default function RestaurantSettings() {
       .admin-btn { height:42px; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:0 14px; border:0; border-radius:8px; color:#150d06; background:#ffd166; font-weight:1000; }
       .settings-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:12px; }
       .settings-grid .wide { grid-column:1 / -1; }
+      .settings-field { display:grid; gap:6px; }
+      .settings-helper { margin:0; color:rgba(255,255,255,0.62); font-size:12px; line-height:1.35; }
       @media (max-width:900px) { .settings-grid { grid-template-columns:1fr; } }
     `}</style>
     <div className="admin-card">
@@ -45,7 +47,10 @@ export default function RestaurantSettings() {
         <input className="admin-input" value={form.currency || "INR"} onChange={(e)=>setForm({...form,currency:e.target.value})} placeholder="Currency"/>
         <input className="admin-input" value={form.taxRate ?? 0} onChange={(e)=>setForm({...form,taxRate:e.target.value})} placeholder="Tax rate (0.05)"/>
         <input className="admin-input" value={form.serviceCharge ?? 0} onChange={(e)=>setForm({...form,serviceCharge:e.target.value})} placeholder="Service charge"/>
-        <input className="admin-input wide" value={form.tablesText} onChange={(e)=>setForm({...form,tablesText:e.target.value})} placeholder="Tables, comma separated"/>
+        <div className="settings-field wide">
+          <input className="admin-input" value={form.tablesText} onChange={(e)=>setForm({...form,tablesText:e.target.value})} placeholder="Tables, comma separated"/>
+          <p className="settings-helper">Enter table names separated by commas, for example T1, T2, Patio, Takeaway.</p>
+        </div>
       </div>
       <button className="admin-btn" onClick={save}><Save size={15}/> Save settings</button>
     </div>
