@@ -104,6 +104,8 @@ const nextStatusFor = (status) => {
     : null;
 };
 
+const getItemId = (item) => item._id || item.id;
+
 function MenuCard({ item, qty, onAdd, onDecrease }) {
   return (
     <article className="dish-card">
@@ -263,7 +265,6 @@ export default function POS({ user, logout }) {
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [restaurant, setRestaurant] = useState(null);
-  const [lastPlacedOrder, setLastPlacedOrder] = useState(null);
 
   const tables = restaurant?.tables?.length ? restaurant.tables : fallbackTables;
 
@@ -281,8 +282,6 @@ export default function POS({ user, logout }) {
       return matchesCategory && matchesQuery;
     });
   }, [category, query, menuItems]);
-
-  const getItemId = (item) => item._id || item.id;
 
   const getQty = (id) => {
     const item = cart.find((c) => getItemId(c) === id);
@@ -379,9 +378,12 @@ export default function POS({ user, logout }) {
   }, []);
 
   useEffect(() => {
-    fetchProducts();
-    fetchOrders();
-    fetchRestaurant();
+    const timer = setTimeout(() => {
+      fetchProducts();
+      fetchOrders();
+      fetchRestaurant();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchProducts, fetchOrders, fetchRestaurant]);
 
   useEffect(() => {
@@ -450,7 +452,6 @@ export default function POS({ user, logout }) {
           : [res.data, ...prev]
       );
       setCart([]);
-      setLastPlacedOrder(res.data);
       setSuccess(true);
 
       setTimeout(() => setSuccess(false), 3500);
@@ -460,15 +461,6 @@ export default function POS({ user, logout }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const printReceipt = () => {
-    if (!lastPlacedOrder) return;
-    const lines = lastPlacedOrder.items.map((item) => `<tr><td>${item.quantity} x ${item.name}</td><td style="text-align:right">₹${item.lineTotal}</td></tr>`).join("");
-    const win = window.open("", "_blank", "width=420,height=640");
-    win.document.write(`<html><head><title>Receipt #${lastPlacedOrder.orderNumber}</title></head><body style="font-family:Arial;padding:20px"><h2>${restaurant?.name || "Restaurant"}</h2><p>Receipt #${lastPlacedOrder.orderNumber}</p><p>${lastPlacedOrder.tableName || "Counter"}</p><table style="width:100%">${lines}</table><hr/><p>Subtotal: ₹${lastPlacedOrder.subtotal}</p><p>Tax: ₹${lastPlacedOrder.tax}</p><p>Service: ₹${lastPlacedOrder.serviceCharge}</p><h3>Total: ₹${lastPlacedOrder.totalAmount}</h3></body></html>`);
-    win.document.close();
-    win.print();
   };
 
   return (
