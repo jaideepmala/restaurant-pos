@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Login from "./pages/Login";
 import POS from "./pages/POS";
 import Kitchen from "./pages/Kitchen";
@@ -84,12 +84,10 @@ function AppShell({ user, logout }) {
 }
 
 function App() {
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
+  const [user, setUser] = useState(() => {
     const storedUser = localStorage.getItem("user");
-    if (storedUser) setUser(JSON.parse(storedUser));
-  }, []);
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
 
   const logout = () => {
     localStorage.removeItem("token");
