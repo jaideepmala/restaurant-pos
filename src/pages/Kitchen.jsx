@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { ChefHat, Clock3, LogOut, RefreshCw, UtensilsCrossed } from "lucide-react";
+import { ChefHat, Clock3, LogOut, RefreshCw } from "lucide-react";
 import { API_BASE, getAuthHeaders } from "../api";
 import { connectRealtime } from "../realtime";
 
